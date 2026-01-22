@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SeloBlock Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-container">
+    <header class="header">
+      <div class="logo">
+        <img src="../../icons/icon48.png" alt="SeloBlock" width="48" height="48">
+        <div>
+          <h1>SeloBlock</h1>
+          <p class="tagline">Privacy-focused ad & tracker blocker</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="section">
+        <h2>Included Block Lists</h2>
+        <p class="section-description">SeloBlock includes the following curated block lists, compiled at build time for maximum performance.</p>
+        
+        <div class="sources-list">
+          <div class="source-item">
+            <div class="source-name">SELO Block List</div>
+            <div class="source-url">github.com/seloc0des/SELO-Block-List</div>
+          </div>
+          <div class="source-item">
+            <div class="source-name">Data Broker Block List</div>
+            <div class="source-url">github.com/seloc0des/databrokerblocklist</div>
+          </div>
+        </div>
+
+        <div class="ruleset-info" id="rulesetInfo">
+          <div class="info-row">
+            <span class="info-label">Total Domains:</span>
+            <span class="info-value" id="totalDomainsInfo">Loading...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Rulesets:</span>
+            <span class="info-value" id="rulesetsInfo">Loading...</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Built:</span>
+            <span class="info-value" id="builtInfo">Loading...</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Whitelist</h2>
+        <p class="section-description">Domains in this list will never be blocked.</p>
+        
+        <div class="whitelist-container" id="whitelistContainer">
+          <!-- Whitelist items will be rendered here -->
+        </div>
+
+        <div class="add-whitelist">
+          <div class="add-form">
+            <input type="text" id="newWhitelistDomain" placeholder="example.com" class="input">
+            <button id="addWhitelistBtn" class="btn btn-primary">Add Domain</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Statistics</h2>
+        <p class="section-description">View your blocking statistics and top blocked domains.</p>
+        
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-value" id="statTotalBlocks">0</div>
+            <div class="stat-label">Total Blocks</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="statTotalDomains">0</div>
+            <div class="stat-label">Domains in Lists</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="statActiveRules">0</div>
+            <div class="stat-label">Active Rules</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="statLastUpdate">Never</div>
+            <div class="stat-label">Last Update</div>
+          </div>
+        </div>
+
+        <div class="top-blocked">
+          <h3>Top Blocked Domains</h3>
+          <div class="top-blocked-list" id="topBlockedList">
+            <!-- Top blocked domains will be rendered here -->
+          </div>
+        </div>
+
+        <button id="resetStatsBtn" class="btn btn-secondary">Reset Statistics</button>
+      </section>
+
+      <section class="section">
+        <h2>About</h2>
+        <div class="about-content">
+          <p><strong>SeloBlock</strong> is an open-source browser extension that blocks ads, trackers, and data brokers using Pi-hole compatible block lists.</p>
+          <p>Version 1.0.0</p>
+          <div class="about-links">
+            <a href="https://github.com/seloc0des/seloblock" target="_blank">GitHub Repository</a>
+            <a href="https://github.com/seloc0des/seloblock/issues" target="_blank">Report an Issue</a>
+            <a href="https://github.com/seloc0des/seloblock/blob/main/LICENSE" target="_blank">License (MIT)</a>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

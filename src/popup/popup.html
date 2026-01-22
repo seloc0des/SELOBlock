@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SELOBlock</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="logo">
+        <img src="../../icons/icon32.png" alt="SeloBlock" width="32" height="32">
+        <h1>SELOBlock</h1>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="enableToggle" checked>
+        <span class="slider"></span>
+      </label>
+    </header>
+
+    <div class="stats-container">
+      <div class="stat-card primary">
+        <div class="stat-value" id="totalBlocked">0</div>
+        <div class="stat-label">Total Blocked</div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="stat-value" id="todayBlocked">0</div>
+          <div class="stat-label">Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="rulesActive">0</div>
+          <div class="stat-label">Active Rules</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="status-bar" id="statusBar">
+      <span class="status-dot active"></span>
+      <span id="statusText">Protection Active</span>
+    </div>
+
+    <div class="quick-actions">
+      <button class="action-btn full-width" id="whitelistBtn" title="Whitelist current site">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+        <span>Whitelist Current Site</span>
+      </button>
+    </div>
+
+    <div class="last-update" id="lastUpdate">
+      300K domains blocked
+    </div>
+
+    <footer class="footer">
+      <a href="#" id="optionsLink">Settings</a>
+      <span class="separator">•</span>
+      <a href="https://github.com/seloc0des/seloblock" target="_blank">GitHub</a>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
