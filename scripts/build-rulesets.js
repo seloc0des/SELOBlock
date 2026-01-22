@@ -128,7 +128,7 @@ function chunkArray(array, size) {
 }
 
 async function main() {
-  console.log('SeloBlock Ruleset Builder');
+  console.log('SELOBlock Ruleset Builder');
   console.log('=========================\n');
 
   if (!fs.existsSync(RULESETS_DIR)) {

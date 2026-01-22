@@ -68,7 +68,7 @@ export class Statistics {
 
       await chrome.storage.local.set({ stats });
     } catch (error) {
-      console.error('[SeloBlock] Error recording block:', error);
+      console.error('[SELOBlock] Error recording block:', error);
     }
   }
 
@@ -96,6 +96,6 @@ export class Statistics {
   }
 
   async saveSession() {
-    console.log('[SeloBlock] Session stats saved');
+    console.log('[SELOBlock] Session stats saved');
   }
 }

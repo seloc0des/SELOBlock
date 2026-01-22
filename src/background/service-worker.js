@@ -2,14 +2,14 @@ import { Statistics } from './statistics.js';
 
 const ALARM_NAME = 'seloblock-stats';
 
-class SeloBlock {
+class SELOBlock {
   constructor() {
     this.statistics = new Statistics();
     this.isEnabled = true;
   }
 
   async initialize() {
-    console.log('[SeloBlock] Initializing...');
+    console.log('[SELOBlock] Initializing...');
     
     const stored = await chrome.storage.local.get(['isEnabled']);
     this.isEnabled = stored.isEnabled !== undefined ? stored.isEnabled : true;
@@ -23,7 +23,7 @@ class SeloBlock {
     
     await this.loadRulesetMeta();
     
-    console.log('[SeloBlock] Initialization complete');
+    console.log('[SELOBlock] Initialization complete');
   }
 
   async loadRulesetMeta() {
@@ -36,10 +36,10 @@ class SeloBlock {
           lastUpdate: new Date(meta.generated).getTime(),
           rulesetCount: meta.rulesets
         });
-        console.log(`[SeloBlock] Loaded ${meta.totalDomains.toLocaleString()} domains from ${meta.rulesets} rulesets`);
+        console.log(`[SELOBlock] Loaded ${meta.totalDomains.toLocaleString()} domains from ${meta.rulesets} rulesets`);
       }
     } catch (error) {
-      console.log('[SeloBlock] No ruleset meta found - run build script first');
+      console.log('[SELOBlock] No ruleset meta found - run build script first');
     }
   }
 
@@ -61,7 +61,7 @@ class SeloBlock {
         this.statistics.recordBlock(info.request.url, info.request.tabId);
       });
     } else {
-      console.log('[SeloBlock] Note: Detailed statistics require Developer Mode');
+      console.log('[SELOBlock] Note: Detailed statistics require Developer Mode');
     }
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -126,7 +126,7 @@ class SeloBlock {
           sendResponse({ error: 'Unknown message type' });
       }
     } catch (error) {
-      console.error('[SeloBlock] Error handling message:', error);
+      console.error('[SELOBlock] Error handling message:', error);
       sendResponse({ error: error.message });
     }
   }
@@ -160,7 +160,7 @@ class SeloBlock {
         });
       }
     } catch (error) {
-      console.error('[SeloBlock] Failed to toggle ruleset:', error);
+      console.error('[SELOBlock] Failed to toggle ruleset:', error);
     }
   }
 
@@ -173,7 +173,7 @@ class SeloBlock {
           await chrome.declarativeNetRequest.updateEnabledRulesets({
             enableRulesetIds: allRulesets
           });
-          console.log(`[SeloBlock] Enabled ${allRulesets.length} rulesets`);
+          console.log(`[SELOBlock] Enabled ${allRulesets.length} rulesets`);
         }
       } else {
         const enabled = await chrome.declarativeNetRequest.getEnabledRulesets();
@@ -181,11 +181,11 @@ class SeloBlock {
           await chrome.declarativeNetRequest.updateEnabledRulesets({
             disableRulesetIds: enabled
           });
-          console.log('[SeloBlock] Disabled all rulesets');
+          console.log('[SELOBlock] Disabled all rulesets');
         }
       }
     } catch (error) {
-      console.error('[SeloBlock] Error applying blocking state:', error);
+      console.error('[SELOBlock] Error applying blocking state:', error);
     }
   }
 
@@ -197,7 +197,7 @@ class SeloBlock {
         return Array.from({ length: meta.rulesets }, (_, i) => `ruleset_${i + 1}`);
       }
     } catch (error) {
-      console.log('[SeloBlock] Could not load ruleset meta');
+      console.log('[SELOBlock] Could not load ruleset meta');
     }
     return [];
   }
@@ -231,7 +231,7 @@ class SeloBlock {
       await chrome.declarativeNetRequest.updateDynamicRules({
         addRules: allowRules
       });
-      console.log(`[SeloBlock] Applied ${allowRules.length} whitelist rules`);
+      console.log(`[SELOBlock] Applied ${allowRules.length} whitelist rules`);
     }
   }
 
@@ -257,5 +257,5 @@ class SeloBlock {
   }
 }
 
-const seloblock = new SeloBlock();
+const seloblock = new SELOBlock();
 seloblock.initialize();
