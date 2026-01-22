@@ -198,5 +198,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 </p>
 
 <p align="center">
-  Made with 🛡️ by <a href="https://github.com/seloc0des">seloc0des</a>
+  Made with 🛡️ by <a href="https://selodev.com">SELOdev</a> • <a href="https://github.com/seloc0des">GitHub</a> • <a href="mailto:selodev3d@gmail.com">Contact</a>
 </p>

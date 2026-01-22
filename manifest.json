@@ -3,7 +3,7 @@
   "name": "SELOBlock",
   "version": "1.0.0",
   "description": "Block ads, trackers, and data brokers using Pi-hole compatible block lists",
-  "author": "SELOBlock Contributors",
+  "author": "SELOdev",
   "homepage_url": "https://github.com/seloc0des/seloblock",
   "icons": {
     "16": "icons/icon16.png",
