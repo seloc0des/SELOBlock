@@ -16,8 +16,10 @@
   const SETTLE_MS = 500;
   const MIN_WORDS = 200;
 
-  // Keep in sync with src/quality/phrases.js (source of truth). Duplicated
-  // because content scripts are classic scripts and cannot import the module.
+  // Content scripts are classic scripts and cannot import the phrases module, so
+  // these constants are generated from src/quality/phrases.js (the source of
+  // truth) by scripts/build-phrases.js. Re-run it after editing that list.
+  // BEGIN GENERATED PHRASES -- do not edit by hand.
   const PHRASE_LIST_VERSION = 1;
   const BOILERPLATE_PHRASES = [
     "in today's fast-paced",
@@ -28,15 +30,23 @@
     "it's important to note",
     'in conclusion',
   ];
+  // END GENERATED PHRASES
 
   const AD_HOST = /(doubleclick|googlesyndication|googleadservices|adservice|adnxs|amazon-adsystem|taboola|outbrain|criteo|adsafeprotected|2mdn|moatads|rubiconproject|pubmatic|openx)\./i;
   const AD_TOKEN = /^(ad|ads|adslot|advert|advertisement|sponsor|sponsored|promoted|taboola|outbrain)([-_].*)?$/i;
-  const AFFILIATE = /([?&]tag=|\/dp\/|amzn\.to|[?&]ref=|shareasale|impact\.com|awin|cj\.com|rstyle|shopstyle|skimlinks|[?&]aff(iliate)?[_=])/i;
+  // Affiliate markers, anchored to URL components: params/path via AFF_PARAM,
+  // known networks via AFF_HOSTS. Testing the whole href with a bare substring
+  // regex flagged ordinary links (any ?tag=/?ref=, any host containing "awin").
+  const AFF_PARAM = /([?&](tag|ref|aff(?:iliate)?)[_=]|\/dp\/|amzn\.to)/i;
+  const AFF_HOSTS = [
+    'shareasale.com', 'impact.com', 'awin.com', 'awin1.com', 'cj.com',
+    'rstyle.me', 'shopstyle.com', 'skimlinks.com',
+  ];
   // (^|\.) anchors each brand to a label boundary; without it short alternatives
   // like x/t/fb match mid-label (netflix.com, cnet.com, nyt.com) and wrongly drop
   // real citations.
   const SOCIAL = /(^|\.)(twitter|x|facebook|instagram|linkedin|youtube|tiktok|reddit|pinterest|fb|t)\.(com|co|me)$/i;
-  const PAYLOAD_BREAK = 'OL,TABLE,H2,PRE,CODE';
+  const PAYLOAD_BREAK = new Set(['OL', 'TABLE', 'H2', 'PRE', 'CODE']);
 
   function isPrivateHost(h) {
     return (
@@ -167,6 +177,12 @@
     return count;
   }
 
+  function isAffiliate(u) {
+    const h = u.hostname.replace(/^www\./, '');
+    if (AFF_HOSTS.some((x) => h === x || h.endsWith('.' + x))) return true;
+    return AFF_PARAM.test(u.search + u.pathname);
+  }
+
   function analyzeAnchors() {
     const here = location.hostname.replace(/^www\./, '');
     let affiliate = 0;
@@ -175,18 +191,19 @@
 
     for (const a of document.querySelectorAll('a[href]')) {
       const href = a.href || '';
-      let host;
+      let u;
       try {
-        host = new URL(href, location.href).hostname;
+        u = new URL(href, location.href);
       } catch {
         continue;
       }
+      const host = u.hostname;
       if (!host) continue;
       const bare = host.replace(/^www\./, '');
       const external = bare !== here && !bare.endsWith(`.${here}`) && !here.endsWith(`.${bare}`);
       if (!external) continue;
       outbound++;
-      const isAff = AFFILIATE.test(href);
+      const isAff = isAffiliate(u);
       if (isAff) affiliate++;
       if (!isAff && !SOCIAL.test(bare)) citationHosts.add(bare);
     }
@@ -225,15 +242,18 @@
     walker.currentNode = h1;
     let node = walker.nextNode();
     while (node) {
-      if (PAYLOAD_BREAK.includes(node.tagName)) break;
+      if (PAYLOAD_BREAK.has(node.tagName)) break;
       node = walker.nextNode();
     }
-    // Count words in text nodes between the H1 and the payload break.
+    // Count words in text nodes between the H1 and the payload break, minus any
+    // script/style text (Range.toString() would otherwise include it).
     const range = document.createRange();
     range.setStartAfter(h1);
     if (node) range.setEndBefore(node);
     else range.setEndAfter(document.body || document.documentElement);
-    count = words(range.toString());
+    const frag = range.cloneContents();
+    frag.querySelectorAll('script, style').forEach((n) => n.remove());
+    count = words(frag.textContent);
     return count;
   }
 
@@ -288,12 +308,16 @@
     const { signals, wordCount } = extract();
     if (wordCount < MIN_WORDS) return; // SPA shells / app UIs produce garbage
     try {
-      chrome.runtime.sendMessage({
+      // Fire-and-forget. In MV3 sendMessage returns a promise that rejects if
+      // the worker is asleep / the context was invalidated; swallow it so it
+      // doesn't surface as an unhandled rejection. A scan is best-effort.
+      const p = chrome.runtime.sendMessage({
         type: 'QUALITY_SIGNALS',
         payload: { url: location.href, signals, extractedAt: Date.now() },
       });
+      if (p && typeof p.catch === 'function') p.catch(() => {});
     } catch {
-      // Service worker asleep or context invalidated; a scan is best-effort.
+      // Synchronous throw (no extension context at all); ignore.
     }
   }
 

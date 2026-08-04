@@ -60,11 +60,12 @@ async function main() {
 
 export const PSL_RULE_COUNT = ${unique.length};
 
-// Rules are newline-joined to keep this file compact; the runtime splits into a
-// Set once at module load. '!' prefixes exceptions, '*.' prefixes wildcards.
+// Rules are newline-joined to keep this file compact; etld.js splits them into
+// a Set lazily on first use (not at import). '!' prefixes exceptions, '*.'
+// prefixes wildcards.
 const RULES = ${JSON.stringify(body)};
 
-export const PSL_RULES = new Set(RULES.split('\\n'));
+export const PSL_RULES_RAW = RULES;
 `;
 
   await writeFile(OUT, file, 'utf8');

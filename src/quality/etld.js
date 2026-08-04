@@ -5,22 +5,31 @@
 // suffix) while news.example.com and example.com collapse to example.com. This
 // correctness is the whole reason we ship the PSL rather than a naive .slice(-2).
 //
-// Pure module: PSL_RULES in (a Set of ASCII rules), hostname in, eTLD+1 out.
+// Pure module: hostname in, eTLD+1 out. The PSL ships as a newline-joined string
+// and is split into a Set lazily on the first resolution (not at import) so a
+// cold worker start that never resolves a domain pays nothing.
 // Regenerate the rule data with: node scripts/build-psl.js
 
-import { PSL_RULES } from './psl-data.js';
+import { PSL_RULES_RAW } from './psl-data.js';
 
 const IPV4 = /^\d{1,3}(\.\d{1,3}){3}$/;
+
+let PSL_SET = null;
+function pslRules() {
+  if (!PSL_SET) PSL_SET = new Set(PSL_RULES_RAW.split('\n'));
+  return PSL_SET;
+}
 
 /**
  * Resolve the registrable domain (eTLD+1) for a hostname.
  *
  * @param {string} hostname - a punycode/ASCII hostname (as the browser reports).
- * @param {Set<string>} [rules] - PSL rule set; defaults to the shipped list.
+ * @param {Set<string>} [rules] - PSL rule set; defaults to the shipped list
+ *          (built lazily on first call).
  * @returns {string|null} the eTLD+1, or null when there is none (IP, single
  *          label, localhost, or a bare public suffix).
  */
-export function registrableDomain(hostname, rules = PSL_RULES) {
+export function registrableDomain(hostname, rules = pslRules()) {
   if (!hostname) return null;
   let host = String(hostname).toLowerCase().replace(/\.+$/, '');
   if (!host || host === 'localhost') return null;

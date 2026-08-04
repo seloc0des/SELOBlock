@@ -19,12 +19,20 @@ class PopupController {
     };
 
     this.activeTabId = null;
+    this.labeled = false; // user labeled this scan; keep buttons disabled
+    this.labeledUrl = null; // scan URL the label applies to (reset on nav)
     this.init();
   }
 
   async init() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    this.activeTabId = tab ? tab.id : null;
+    // A tabs.query failure must not take the whole popup down with it; the
+    // blocking UI still works even if we can't resolve the active tab.
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      this.activeTabId = tab ? tab.id : null;
+    } catch {
+      this.activeTabId = null;
+    }
     await this.loadStatus();
     await this.loadQuality();
     this.setupEventListeners();
@@ -41,8 +49,23 @@ class PopupController {
     }
     if (!report) return;
 
-    this.elements.qualitySection.hidden = false;
     const { scan, blockedCount, domainInfo } = report;
+
+    // Nothing to show for this page (no scan, no block count, no domain history):
+    // keep the section hidden instead of rendering an empty panel.
+    if (!scan && blockedCount == null && !domainInfo?.samples) {
+      this.elements.qualitySection.hidden = true;
+      return;
+    }
+    this.elements.qualitySection.hidden = false;
+
+    // Reset the labeled latch when the scan is for a different URL (the popup
+    // can stay open across a navigation).
+    const scanUrl = scan ? scan.url : null;
+    if (scanUrl !== this.labeledUrl) {
+      this.labeled = false;
+      this.labeledUrl = null;
+    }
 
     const bandEl = this.elements.qualityBand;
     bandEl.className = 'quality-band';
@@ -68,10 +91,11 @@ class PopupController {
     this.elements.qualityBlocked.textContent =
       blockedCount != null ? `${blockedCount} blocked here` : '';
 
-    // Labels need a stored scan to attach signals to.
-    const labelable = !!scan;
-    this.elements.labelSlopBtn.classList.toggle('done', !labelable);
-    this.elements.labelFineBtn.classList.toggle('done', !labelable);
+    // Labels need a stored scan to attach signals to; once labeled, stay done
+    // so the 5s poll doesn't re-enable the buttons and invite a duplicate label.
+    const done = !scan || this.labeled;
+    this.elements.labelSlopBtn.classList.toggle('done', done);
+    this.elements.labelFineBtn.classList.toggle('done', done);
   }
 
   async loadStatus() {
@@ -186,9 +210,14 @@ class PopupController {
           label
         });
         if (res && res.success) {
+          this.labeled = true;
+          this.labeledUrl = res.url || this.labeledUrl;
           this.elements.labelSlopBtn.classList.add('done');
           this.elements.labelFineBtn.classList.add('done');
           this.showNotification('Label saved');
+        } else if (res && res.error) {
+          // Storage error surfaced by the controller; buttons stay enabled to retry.
+          this.showNotification('Failed to save label', true);
         } else {
           this.showNotification('No page scan to label', true);
         }

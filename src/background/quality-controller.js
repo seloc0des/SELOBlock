@@ -11,7 +11,7 @@
 //                    from scoring and the scorer renormalizes.
 
 import { registrableDomain } from '../quality/etld.js';
-import { scoreSignals } from '../quality/score.js';
+import { scoreSignals, WEIGHTS_VERSION, PHRASE_LIST_VERSION } from '../quality/score.js';
 import {
   getSettings,
   setSettings,
@@ -31,20 +31,28 @@ export class QualityController {
     // fine: the events keep the worker alive across a page's lifetime, and this
     // is a best-effort calibration signal, not persisted reputation.
     this.blockedByTab = new Map();
+
+    // Register tab listeners synchronously at construction (the worker news up
+    // this controller at top level). Registering after an await in initialize()
+    // risks missing early navigations while settings hydrate.
+    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+      if (changeInfo.status === 'loading') {
+        this.blockedByTab.delete(tabId);
+        // Drop the stale per-tab scan too, or the popup shows the previous
+        // page's band until the new page finishes scanning.
+        chrome.storage.session.remove(TAB_KEY(tabId)).catch(() => {});
+      }
+    });
+    chrome.tabs.onRemoved.addListener((tabId) => {
+      this.blockedByTab.delete(tabId);
+      chrome.storage.session.remove(TAB_KEY(tabId)).catch(() => {});
+    });
   }
 
   async initialize() {
     const settings = await getSettings();
     await this.syncBadge(settings.showBadge);
     await this.syncContentScript(settings.enabled);
-
-    chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-      if (changeInfo.status === 'loading') this.blockedByTab.delete(tabId);
-    });
-    chrome.tabs.onRemoved.addListener((tabId) => {
-      this.blockedByTab.delete(tabId);
-      chrome.storage.session.remove(TAB_KEY(tabId)).catch(() => {});
-    });
   }
 
   // Called from the existing onRuleMatchedDebug listener (dev builds only).
@@ -95,30 +103,41 @@ export class QualityController {
 
   // --- message handling -----------------------------------------------------
 
-  // Returns true if it handled the message (and will call sendResponse).
+  // Returns true if it handled the message (and will call sendResponse). Every
+  // async branch has a .catch so a rejected promise still replies; otherwise the
+  // caller's sendMessage hangs until the channel closes ("message port closed").
   handle(message, sender, sendResponse) {
+    const fail = (e) => sendResponse({ error: e?.message || String(e) });
     switch (message.type) {
       case 'QUALITY_SIGNALS':
-        this.onSignals(message.payload, sender).then(() => sendResponse({ ok: true }));
+        this.onSignals(message.payload, sender).then(() => sendResponse({ ok: true }), fail);
         return true;
       case 'QUALITY_GET_TAB':
-        this.getTabReport(message.tabId).then(sendResponse);
+        this.getTabReport(message.tabId).then(sendResponse, fail);
         return true;
       case 'QUALITY_LABEL':
-        this.onLabel(message.tabId, message.label).then(sendResponse);
+        this.onLabel(message.tabId, message.label).then(sendResponse, fail);
         return true;
       case 'QUALITY_EXPORT_LABELS':
-        getLabels().then((labels) => sendResponse({ labels }));
+        getLabels().then((labels) => sendResponse({ labels }), fail);
         return true;
       case 'QUALITY_GET_SETTINGS':
-        getSettings().then((settings) => sendResponse({ settings }));
+        this.getSettingsForUi().then((settings) => sendResponse({ settings }), fail);
         return true;
       case 'QUALITY_SET_SETTINGS':
-        this.onSetSettings(message.settings).then((settings) => sendResponse({ settings }));
+        this.onSetSettings(message.settings).then((settings) => sendResponse({ settings }), fail);
         return true;
       default:
-        return false;
+        sendResponse({ error: `Unknown quality message: ${message.type}` });
+        return true;
     }
+  }
+
+  // Settings as the UI should see them: persisted user prefs plus the current
+  // code-fact versions stamped on (never read stale from disk).
+  async getSettingsForUi() {
+    const settings = await getSettings();
+    return { ...settings, weightsVersion: WEIGHTS_VERSION, phraseListVersion: PHRASE_LIST_VERSION };
   }
 
   async onSignals(payload, sender) {
@@ -141,21 +160,27 @@ export class QualityController {
 
     const { score, band } = scoreSignals(signals);
 
+    // Score the live page WITH blockedRequests, but never persist it: it only
+    // exists in dev builds, so persisting it would make dev/packed reputations
+    // diverge and bias medians (absent != 0). Strip it from everything on disk.
+    const persistSignals = { ...signals };
+    delete persistSignals.blockedRequests;
+
     // Transient per-tab cache for the popup. storage.session is in-memory and
     // never written to disk, so holding the full URL here does not break the
     // "URLs never persisted" promise.
     if (tabId != null) {
       await chrome.storage.session.set({
-        [TAB_KEY(tabId)]: { url: payload.url, domain, signals, score, band, ts: Date.now() },
+        [TAB_KEY(tabId)]: { url: payload.url, domain, signals: persistSignals, score, band, ts: Date.now() },
       });
     }
 
-    if (domain) await recordScan(domain, signals, band);
+    if (domain) await recordScan(domain, persistSignals, band);
 
     if (settings.keepRecent) {
       try {
         const u = new URL(payload.url);
-        await addRecent({ originPath: u.origin + u.pathname, domain, signals, score });
+        await addRecent({ originPath: u.origin + u.pathname, domain, signals: persistSignals, score });
       } catch {
         /* ignore */
       }
@@ -177,7 +202,7 @@ export class QualityController {
     const scan = got[key];
     if (!scan) return { success: false, reason: 'no-scan' };
     await addLabel({ url: scan.url, domain: scan.domain, label, signals: scan.signals });
-    return { success: true };
+    return { success: true, url: scan.url };
   }
 
   async onSetSettings(patch) {
@@ -185,7 +210,7 @@ export class QualityController {
     const settings = await setSettings(patch);
     if (settings.showBadge !== before.showBadge) await this.syncBadge(settings.showBadge);
     if (settings.enabled !== before.enabled) await this.syncContentScript(settings.enabled);
-    return settings;
+    return { ...settings, weightsVersion: WEIGHTS_VERSION, phraseListVersion: PHRASE_LIST_VERSION };
   }
 
   // Best-effort blocked count for display: dev counter, else getMatchedRules
