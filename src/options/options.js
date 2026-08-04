@@ -12,7 +12,14 @@ class OptionsController {
       statActiveRules: document.getElementById('statActiveRules'),
       statLastUpdate: document.getElementById('statLastUpdate'),
       topBlockedList: document.getElementById('topBlockedList'),
-      resetStatsBtn: document.getElementById('resetStatsBtn')
+      resetStatsBtn: document.getElementById('resetStatsBtn'),
+      qEnabled: document.getElementById('qEnabled'),
+      qShowBadge: document.getElementById('qShowBadge'),
+      qKeepRecent: document.getElementById('qKeepRecent'),
+      qWeightsVersion: document.getElementById('qWeightsVersion'),
+      qPhraseVersion: document.getElementById('qPhraseVersion'),
+      qLabelCount: document.getElementById('qLabelCount'),
+      qExportBtn: document.getElementById('qExportBtn')
     };
 
     this.init();
@@ -22,7 +29,49 @@ class OptionsController {
     await this.loadRulesetInfo();
     await this.loadWhitelist();
     await this.loadStats();
+    await this.loadQualitySettings();
     this.setupEventListeners();
+  }
+
+  async loadQualitySettings() {
+    try {
+      const { settings } = await this.sendMessage({ type: 'QUALITY_GET_SETTINGS' });
+      if (settings) {
+        this.elements.qEnabled.checked = !!settings.enabled;
+        this.elements.qShowBadge.checked = !!settings.showBadge;
+        this.elements.qKeepRecent.checked = !!settings.keepRecent;
+        this.elements.qWeightsVersion.textContent = settings.weightsVersion;
+        this.elements.qPhraseVersion.textContent = settings.phraseListVersion;
+      }
+      const { labels } = await this.sendMessage({ type: 'QUALITY_EXPORT_LABELS' });
+      this.elements.qLabelCount.textContent = (labels || []).length;
+    } catch (error) {
+      console.error('Failed to load quality settings:', error);
+    }
+  }
+
+  async saveQualitySetting(patch) {
+    try {
+      await this.sendMessage({ type: 'QUALITY_SET_SETTINGS', settings: patch });
+    } catch (error) {
+      this.showNotification('Failed to save setting', true);
+    }
+  }
+
+  async exportLabels() {
+    try {
+      const { labels } = await this.sendMessage({ type: 'QUALITY_EXPORT_LABELS' });
+      const blob = new Blob([JSON.stringify(labels || [], null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'seloblock-quality-labels.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      this.showNotification(`Exported ${(labels || []).length} labels`);
+    } catch (error) {
+      this.showNotification('Failed to export labels', true);
+    }
   }
 
   async loadRulesetInfo() {
@@ -140,6 +189,17 @@ class OptionsController {
         this.showNotification('Failed to add to whitelist', true);
       }
     });
+
+    this.elements.qEnabled.addEventListener('change', (e) =>
+      this.saveQualitySetting({ enabled: e.target.checked })
+    );
+    this.elements.qShowBadge.addEventListener('change', (e) =>
+      this.saveQualitySetting({ showBadge: e.target.checked })
+    );
+    this.elements.qKeepRecent.addEventListener('change', (e) =>
+      this.saveQualitySetting({ keepRecent: e.target.checked })
+    );
+    this.elements.qExportBtn.addEventListener('click', () => this.exportLabels());
 
     this.elements.resetStatsBtn.addEventListener('click', async () => {
       if (confirm('Are you sure you want to reset all statistics?')) {

@@ -413,6 +413,61 @@ input:checked + .slider:before {
   font-size: 14px;
 }
 
+.beta-tag {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.15);
+  border-radius: 999px;
+  padding: 2px 8px;
+  vertical-align: middle;
+}
+
+.quality-settings {
+  margin-bottom: 20px;
+}
+
+.q-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+}
+
+.q-toggle-row:last-child {
+  border-bottom: none;
+}
+
+.q-toggle-name {
+  display: block;
+  font-size: 14px;
+}
+
+.q-toggle-desc {
+  display: block;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+.q-toggle-row input[type="checkbox"] {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: #00d4ff;
+  cursor: pointer;
+}
+
+.ruleset-info + #qExportBtn,
+#qExportBtn {
+  margin-top: 20px;
+}
+
 .notification {
   position: fixed;
   bottom: 20px;

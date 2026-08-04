@@ -100,6 +100,52 @@
       </section>
 
       <section class="section">
+        <h2>Content Quality <span class="beta-tag">Phase A</span></h2>
+        <p class="section-description">Heuristic quality scoring of pages you visit. Annotates only &mdash; it never blocks, hides, or rewrites anything. Only per-domain aggregates are stored unless you click a label.</p>
+
+        <div class="quality-settings">
+          <label class="q-toggle-row">
+            <span>
+              <span class="q-toggle-name">Enable quality scanning</span>
+              <span class="q-toggle-desc">When off, the scanner is fully unregistered and does not run at all.</span>
+            </span>
+            <input type="checkbox" id="qEnabled">
+          </label>
+          <label class="q-toggle-row">
+            <span>
+              <span class="q-toggle-name">Show blocked count on the toolbar badge</span>
+              <span class="q-toggle-desc">Per-tab count of blocked requests, painted by the browser.</span>
+            </span>
+            <input type="checkbox" id="qShowBadge">
+          </label>
+          <label class="q-toggle-row">
+            <span>
+              <span class="q-toggle-name">Keep a recent-pages debug buffer</span>
+              <span class="q-toggle-desc">Developer aid. Stores origin + path (no query) for up to 500 pages, on disk. Off by default.</span>
+            </span>
+            <input type="checkbox" id="qKeepRecent">
+          </label>
+        </div>
+
+        <div class="ruleset-info">
+          <div class="info-row">
+            <span class="info-label">Weights version:</span>
+            <span class="info-value" id="qWeightsVersion">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Phrase list version:</span>
+            <span class="info-value" id="qPhraseVersion">—</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Saved labels:</span>
+            <span class="info-value" id="qLabelCount">0</span>
+          </div>
+        </div>
+
+        <button id="qExportBtn" class="btn btn-primary">Export Labels (JSON)</button>
+      </section>
+
+      <section class="section">
         <h2>About</h2>
         <div class="about-content">
           <p><strong>SELOBlock</strong> is an open-source browser extension that blocks ads, trackers, and data brokers using Pi-hole compatible block lists.</p>

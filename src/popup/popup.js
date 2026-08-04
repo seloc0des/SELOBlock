@@ -9,16 +9,69 @@ class PopupController {
       statusText: document.getElementById('statusText'),
       whitelistBtn: document.getElementById('whitelistBtn'),
       lastUpdate: document.getElementById('lastUpdate'),
-      optionsLink: document.getElementById('optionsLink')
+      optionsLink: document.getElementById('optionsLink'),
+      qualitySection: document.getElementById('qualitySection'),
+      qualityBand: document.getElementById('qualityBand'),
+      qualityDomain: document.getElementById('qualityDomain'),
+      qualityBlocked: document.getElementById('qualityBlocked'),
+      labelSlopBtn: document.getElementById('labelSlopBtn'),
+      labelFineBtn: document.getElementById('labelFineBtn')
     };
 
+    this.activeTabId = null;
     this.init();
   }
 
   async init() {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    this.activeTabId = tab ? tab.id : null;
     await this.loadStatus();
+    await this.loadQuality();
     this.setupEventListeners();
     this.startPolling();
+  }
+
+  async loadQuality() {
+    if (this.activeTabId == null) return;
+    let report;
+    try {
+      report = await this.sendMessage({ type: 'QUALITY_GET_TAB', tabId: this.activeTabId });
+    } catch {
+      return;
+    }
+    if (!report) return;
+
+    this.elements.qualitySection.hidden = false;
+    const { scan, blockedCount, domainInfo } = report;
+
+    const bandEl = this.elements.qualityBand;
+    bandEl.className = 'quality-band';
+    if (scan && scan.band) {
+      bandEl.textContent = scan.band;
+      bandEl.classList.add(scan.band);
+      bandEl.title = `raw score ${scan.score}`;
+    } else {
+      bandEl.textContent = '—';
+      bandEl.title = '';
+    }
+
+    if (domainInfo && domainInfo.hasVerdict) {
+      this.elements.qualityDomain.textContent =
+        `${domainInfo.domain} · reputation ${domainInfo.domainBand} (${domainInfo.samples})`;
+    } else if (domainInfo && domainInfo.samples > 0) {
+      this.elements.qualityDomain.textContent =
+        `${domainInfo.domain} · ${domainInfo.samples}/3 visits`;
+    } else {
+      this.elements.qualityDomain.textContent = scan && scan.domain ? scan.domain : '';
+    }
+
+    this.elements.qualityBlocked.textContent =
+      blockedCount != null ? `${blockedCount} blocked here` : '';
+
+    // Labels need a stored scan to attach signals to.
+    const labelable = !!scan;
+    this.elements.labelSlopBtn.classList.toggle('done', !labelable);
+    this.elements.labelFineBtn.classList.toggle('done', !labelable);
   }
 
   async loadStatus() {
@@ -121,10 +174,37 @@ class PopupController {
       e.preventDefault();
       chrome.runtime.openOptionsPage();
     });
+
+    const onLabel = async (e) => {
+      const btn = e.currentTarget;
+      if (btn.classList.contains('done') || this.activeTabId == null) return;
+      const label = btn.dataset.label;
+      try {
+        const res = await this.sendMessage({
+          type: 'QUALITY_LABEL',
+          tabId: this.activeTabId,
+          label
+        });
+        if (res && res.success) {
+          this.elements.labelSlopBtn.classList.add('done');
+          this.elements.labelFineBtn.classList.add('done');
+          this.showNotification('Label saved');
+        } else {
+          this.showNotification('No page scan to label', true);
+        }
+      } catch {
+        this.showNotification('Failed to save label', true);
+      }
+    };
+    this.elements.labelSlopBtn.addEventListener('click', onLabel);
+    this.elements.labelFineBtn.addEventListener('click', onLabel);
   }
 
   startPolling() {
-    setInterval(() => this.loadStatus(), 5000);
+    setInterval(() => {
+      this.loadStatus();
+      this.loadQuality();
+    }, 5000);
   }
 
   sendMessage(message) {

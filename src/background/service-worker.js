@@ -1,10 +1,12 @@
 import { Statistics } from './statistics.js';
+import { QualityController } from './quality-controller.js';
 
 const ALARM_NAME = 'seloblock-stats';
 
 class SELOBlock {
   constructor() {
     this.statistics = new Statistics();
+    this.quality = new QualityController();
     this.isEnabled = true;
   }
 
@@ -20,9 +22,10 @@ class SELOBlock {
     
     this.setupAlarm();
     this.setupListeners();
-    
+
     await this.loadRulesetMeta();
-    
+    await this.quality.initialize();
+
     console.log('[SELOBlock] Initialization complete');
   }
 
@@ -59,12 +62,18 @@ class SELOBlock {
     if (chrome.declarativeNetRequest.onRuleMatchedDebug) {
       chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((info) => {
         this.statistics.recordBlock(info.request.url, info.request.tabId);
+        this.quality.onBlockedRequest(info.request.tabId);
       });
     } else {
       console.log('[SELOBlock] Note: Detailed statistics require Developer Mode');
     }
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      // Quality-scoring messages are namespaced QUALITY_*; let the controller
+      // claim them so the blocking message handler is untouched.
+      if (typeof message?.type === 'string' && message.type.startsWith('QUALITY_')) {
+        return this.quality.handle(message, sender, sendResponse);
+      }
       this.handleMessage(message, sender, sendResponse);
       return true;
     });
