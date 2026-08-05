@@ -178,12 +178,7 @@ class SELOBlock {
       const allRulesets = await this.getAvailableRulesets();
       
       if (this.isEnabled) {
-        if (allRulesets.length > 0) {
-          await chrome.declarativeNetRequest.updateEnabledRulesets({
-            enableRulesetIds: allRulesets
-          });
-          console.log(`[SELOBlock] Enabled ${allRulesets.length} rulesets`);
-        }
+        await this.enableRulesetsWithinBudget(allRulesets);
       } else {
         const enabled = await chrome.declarativeNetRequest.getEnabledRulesets();
         if (enabled.length > 0) {
@@ -196,6 +191,37 @@ class SELOBlock {
     } catch (error) {
       console.error('[SELOBlock] Error applying blocking state:', error);
     }
+  }
+
+  // Enable as many static rulesets as the browser's DNR rule budget allows.
+  // Chrome guarantees 30k static rules/extension; the rest come from a global
+  // pool shared with other DNR extensions, so the full set (300k) fits on a
+  // clean Chrome but overflows on Brave or when another blocker is installed.
+  // Try the whole set first; on the "exceeds the rule count limit" error, fall
+  // back to enabling one ruleset at a time until the budget is spent.
+  async enableRulesetsWithinBudget(allRulesets) {
+    if (allRulesets.length === 0) return;
+    try {
+      await chrome.declarativeNetRequest.updateEnabledRulesets({
+        enableRulesetIds: allRulesets
+      });
+      console.log(`[SELOBlock] Enabled all ${allRulesets.length} rulesets`);
+      return;
+    } catch (e) {
+      console.log(`[SELOBlock] Full ruleset set over budget (${e?.message}); enabling as many as fit`);
+    }
+
+    const enabled = new Set(await chrome.declarativeNetRequest.getEnabledRulesets());
+    for (const id of allRulesets) {
+      if (enabled.has(id)) continue;
+      try {
+        await chrome.declarativeNetRequest.updateEnabledRulesets({ enableRulesetIds: [id] });
+        enabled.add(id);
+      } catch {
+        break; // budget exhausted; stop before the failing one
+      }
+    }
+    console.log(`[SELOBlock] Enabled ${enabled.size}/${allRulesets.length} rulesets (rule budget limited)`);
   }
 
   async getAvailableRulesets() {

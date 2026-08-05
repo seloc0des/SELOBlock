@@ -47,47 +47,47 @@
       },
       {
         "id": "ruleset_2",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_2.json"
       },
       {
         "id": "ruleset_3",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_3.json"
       },
       {
         "id": "ruleset_4",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_4.json"
       },
       {
         "id": "ruleset_5",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_5.json"
       },
       {
         "id": "ruleset_6",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_6.json"
       },
       {
         "id": "ruleset_7",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_7.json"
       },
       {
         "id": "ruleset_8",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_8.json"
       },
       {
         "id": "ruleset_9",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_9.json"
       },
       {
         "id": "ruleset_10",
-        "enabled": true,
+        "enabled": false,
         "path": "rulesets/ruleset_10.json"
       }
     ]
